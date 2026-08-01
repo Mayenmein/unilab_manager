@@ -1,6 +1,9 @@
 import uuid
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.conf import settings
+from academics.models import Course, CourseEnrollment
+
 
 
 class Lab(models.Model):
@@ -100,3 +103,117 @@ class Workstation(models.Model):
     def __str__(self):
         state = "Available" if self.is_available else "Under Maintenance / Lab Closed"
         return f"{self.lab.name} - Seat #{self.seat_number} [{state}]"
+
+
+class TimeSlot(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    label = models.CharField(max_length=50, help_text="e.g. Morning Slot 1 (08:00 - 10:00)")
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    class Meta:
+        ordering = ['start_time']
+
+    def clean(self):
+        super().clean()
+        if self.start_time and self.end_time and self.start_time >= self.end_time:
+            raise ValidationError({'end_time': 'End time must be after start time.'})
+
+    def __str__(self):
+        return f"{self.label} ({self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')})"
+
+
+class ClassBooking(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    lab = models.ForeignKey(Lab, on_delete=models.CASCADE, related_name='class_bookings')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lab_bookings')
+    lecturer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='class_bookings',
+        limit_choices_to={'role': 'LECTURER'}
+    )
+    date = models.DateField()
+    time_slot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE, related_name='class_bookings')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # Prevent double-booking a lab room during the same slot
+        unique_together = ('lab', 'date', 'time_slot')
+        ordering = ['date', 'time_slot__start_time']
+
+    def clean(self):
+        super().clean()
+        
+        # 1. Check lab availability
+        if self.lab_id and not self.lab.is_active:
+            raise ValidationError({'lab': f"Cannot book class in '{self.lab.name}' because it is inactive/closed."})
+
+        # 2. Check user role
+        if self.lecturer_id and not self.lecturer.is_lecturer:
+            raise ValidationError({'lecturer': 'Only users with the LECTURER role can book lab class sessions.'})
+
+        # 3. Check course lecturer alignment
+        if self.course_id and self.lecturer_id and self.course.lecturer != self.lecturer:
+            raise ValidationError({'course': f"Lecturer {self.lecturer} is not assigned to teach course {self.course.course_code}."})
+
+    def __str__(self):
+        return f"{self.course.course_code} in {self.lab.name} on {self.date} ({self.time_slot.label})"
+
+
+class WorkstationReservation(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    workstation = models.ForeignKey(Workstation, on_delete=models.CASCADE, related_name='reservations')
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reservations',
+        limit_choices_to={'role': 'STUDENT'}
+    )
+    date = models.DateField()
+    time_slot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE, related_name='reservations')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # Enforce unique seat reservation per slot
+        unique_together = ('workstation', 'date', 'time_slot')
+        ordering = ['date', 'time_slot__start_time']
+
+    def clean(self):
+        super().clean()
+
+        # 1. Role validation
+        if self.student_id and not self.student.is_student:
+            raise ValidationError({'student': 'Only registered STUDENT users can reserve individual workstations.'})
+
+        # 2. Seat / Lab status check
+        if self.workstation_id and not self.workstation.is_available:
+            raise ValidationError({'workstation': f"Workstation Seat #{self.workstation.seat_number} is currently unavailable or the lab is closed."})
+
+        # 3. CLASS LOCK & ENROLLMENT CONSTRAINT CHECK
+        if self.workstation_id and self.date and self.time_slot_id:
+            lab = self.workstation.lab
+            active_class = ClassBooking.objects.filter(
+                lab=lab,
+                date=self.date,
+                time_slot=self.time_slot
+            ).first()
+
+            if active_class:
+                # Check if the student is enrolled in the scheduled course
+                is_enrolled = CourseEnrollment.objects.filter(
+                    course=active_class.course,
+                    student=self.student
+                ).exists()
+
+                if not is_enrolled:
+                    raise ValidationError({
+                        'workstation': (
+                            f"Reservation blocked: {lab.name} is reserved for course "
+                            f"'{active_class.course.course_code}' during this time slot. "
+                            f"Only enrolled students of {active_class.course.course_code} can reserve seats."
+                        )
+                    })
+
+    def __str__(self):
+        return f"{self.student.get_full_name() or self.student.username} - Seat #{self.workstation.seat_number} ({self.date})"

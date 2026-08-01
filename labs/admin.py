@@ -1,7 +1,6 @@
-# labs/admin.py
-
 from django.contrib import admin
 from .models import Lab, Workstation
+from .models import TimeSlot, ClassBooking, WorkstationReservation
 
 
 @admin.action(description='Activate selected labs and make workstations available')
@@ -38,3 +37,21 @@ class WorkstationAdmin(admin.ModelAdmin):
     list_display = ['lab', 'seat_number', 'status', 'is_available']
     list_filter = ['status', 'lab__is_active', 'lab']
     search_fields = ['lab__name', 'seat_number']
+
+@admin.register(TimeSlot)
+class TimeSlotAdmin(admin.ModelAdmin):
+    list_display = ['label', 'start_time', 'end_time']
+
+
+@admin.register(ClassBooking)
+class ClassBookingAdmin(admin.ModelAdmin):
+    list_display = ['course', 'lab', 'lecturer', 'date', 'time_slot']
+    list_filter = ['date', 'lab', 'course']
+    search_fields = ['course__course_code', 'lecturer__email', 'lab__name']
+
+
+@admin.register(WorkstationReservation)
+class WorkstationReservationAdmin(admin.ModelAdmin):
+    list_display = ['workstation', 'student', 'date', 'time_slot', 'created_at']
+    list_filter = ['date', 'workstation__lab']
+    search_fields = ['student__email', 'student__username', 'workstation__lab__name']
