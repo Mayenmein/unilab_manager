@@ -1,47 +1,91 @@
 <!-- templates/accounts/login.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - LabPulse Management System</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        .login-card h2 { margin-top: 0; color: #333; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; color: #666; }
-        .form-group input { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn { width: 100%; background-color: #007bff; color: white; border: none; padding: 0.75rem; border-radius: 4px; cursor: pointer; font-size: 1rem; }
-        .btn:hover { background-color: #0056b3; }
-        .error-list { color: red; margin-bottom: 1rem; font-size: 0.9rem; }
-    </style>
-</head>
-<body>
+{% extends 'base.html' %}
 
-<div class="login-card">
-    <h2>LabPulse Login</h2>
-    
-    {% if form.errors %}
-        <div class="error-list">
-            <p>Invalid email or password. Please try again.</p>
-        </div>
-    {% endif %}
+{% block title %}Login - LabPulse Management System{% endblock %}
 
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="id_username">Email Address</label>
-            <input type="email" name="username" id="id_username" required autofocus>
-        </div>
-        <div class="form-group">
-            <label for="id_password">Password</label>
-            <input type="password" name="password" id="id_password" required>
-        </div>
-        <button type="submit" class="btn">Sign In</button>
-    </form>
-        <p style="margin-top: 1rem; text-align: center;">Do not have an account? <a href="{% url 'accounts:register' %}">Register here</a></p>
+{% block extra_head %}
+<style>
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 75vh;
+    }
+    .login-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 400px;
+    }
+    .login-card h2 {
+        margin-top: 0;
+        color: #333;
+    }
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #666;
+    }
+    .form-group input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+    .btn-login {
+        width: 100%;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 0.75rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+    .btn-login:hover {
+        background-color: #0056b3;
+    }
+    .error-list {
+        color: red;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <h2>LabPulse Login</h2>
+        
+        {% if form.errors %}
+            <div class="error-list">
+                <p>Invalid email or password. Please try again.</p>
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_username">Email Address</label>
+                <input type="email" name="username" id="id_username" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="id_password">Password</label>
+                <input type="password" name="password" id="id_password" required>
+            </div>
+            <button type="submit" class="btn-login">Sign In</button>
+        </form>
+
+        <p style="margin-top: 1rem; text-align: center;">
+            Do not have an account? <a href="{% url 'accounts:register' %}">Register here</a>
+        </p>
+    </div>
 </div>
-
-</body>
-</html>
+{% endblock %}

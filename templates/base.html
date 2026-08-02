@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Lab Reservation System{% endblock %}</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100 bg-light">
+
+    <!-- NAVIGATION BAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'labs:root_redirect' %}">
+                🖥️ LabReserve
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    {% if user.is_authenticated %}
+                        {% if user.role == 'STUDENT' or not user.is_staff and user.role != 'LECTURER' %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.url_name == 'labs:student_dashboard' %}active{% endif %}" href="{% url 'labs:student_dashboard' %}">
+                                    🎓 Student Portal
+                                </a>
+                            </li>
+                        {% elif user.role == 'LECTURER' %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.url_name == 'labs:lecturer_dashboard' %}active{% endif %}" href="{% url 'labs:lecturer_dashboard' %}">
+                                    👨‍🏫 Lecturer Portal
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% if user.is_staff or user.role == 'ADMIN' or user.role == 'STAFF' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="/admin/" target="_blank">
+                                    ⚙️ Admin Panel
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+
+                <!-- USER AUTH STATUS -->
+                <div class="d-flex align-items-center gap-3">
+                    {% if user.is_authenticated %}
+                        <span class="text-light small">
+                            Logged in as: <strong>{{ user.get_full_name|default:user.username }}</strong>
+                            <span class="badge bg-secondary ms-1">{{ user.role|default:"User" }}</span>
+                        </span>
+                        <form method="POST" action="{% url 'accounts:logout' %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+                        </form>
+                    {% else %}
+                        <a href="{% url 'accounts:login' %}" class="btn btn-outline-light btn-sm">Login</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- DJANGO MESSAGES DISPLAY -->
+    <div class="container mt-3">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
+                    {% if message.tags == 'error' %}⚠️ {% elif message.tags == 'success' %}✅ {% endif %}
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- MAIN CONTENT BLOCK -->
+    <main class="flex-grow-1">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-top py-3 mt-5 text-center text-muted small">
+        <div class="container">
+            <span>&copy; {% now "Y" %} Lab Reservation System. Built with Django.</span>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 Bundle JS (Includes Popper for Modals) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

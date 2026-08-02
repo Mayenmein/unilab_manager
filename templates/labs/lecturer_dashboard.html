@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Lecturer Lab Portal{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>👨‍🏫 Lecturer Lab Scheduling Portal</h2>
+    <span class="badge bg-primary fs-6">Welcome, {{ request.user.get_full_name|default:request.user.username }}</span>
+  </div>
+
+  <!-- Messages Display -->
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- 1. LAB BOOKING FORM -->
+  <div class="card shadow-sm mb-5">
+    <div class="card-header bg-dark text-white">
+      <h5 class="card-title mb-0">Schedule Lab Room for Course</h5>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{% url 'labs:lecturer_dashboard' %}">
+        {% csrf_token %}
+        <div class="row g-3">
+          
+          <!-- Select Course -->
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Select Course</label>
+            <select name="course" class="form-select" required>
+              <option value="">-- Choose Course --</option>
+              {% for course in courses %}
+                <option value="{{ course.id }}">
+                  {{ course.course_code }} - {{ course.title }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Select Lab -->
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Select Lab Room</label>
+            <select name="lab" class="form-select" required>
+              <option value="">-- Choose Lab --</option>
+              {% for lab in labs %}
+                <option value="{{ lab.id }}">
+                  {{ lab.name }} (Capacity: {{ lab.capacity }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Date Picker -->
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Date</label>
+            <input type="date" name="date" class="form-control" required min="{{ today|date:'Y-m-d' }}">
+          </div>
+
+          <!-- Select Time Slot -->
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Time Slot</label>
+            <select name="time_slot" class="form-select" required>
+              <option value="">-- Choose Slot --</option>
+              {% for slot in time_slots %}
+                <option value="{{ slot.id }}">
+                  {{ slot.label }} ({{ slot.start_time|time:"H:i" }} - {{ slot.end_time|time:"H:i" }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+        </div>
+
+        <div class="mt-4 text-end">
+          <button type="submit" class="btn btn-primary px-4">
+            🔒 Lock Lab Room for Class
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. SCHEDULED LAB SESSIONS TABLE -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-light">
+      <h5 class="card-title mb-0">Your Upcoming Scheduled Lab Sessions</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Time Slot</th>
+              <th>Course Code</th>
+              <th>Course Name</th>
+              <th>Lab Room</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for booking in my_class_bookings %}
+              <tr>
+                <td class="fw-bold">{{ booking.date }}</td>
+                <td>
+                  <span class="badge bg-info text-dark">
+                    {{ booking.time_slot.label }} ({{ booking.time_slot.start_time|time:"H:i" }} - {{ booking.time_slot.end_time|time:"H:i" }})
+                  </span>
+                </td>
+                <td><code>{{ booking.course.course_code }}</code></td>
+                <td>{{ booking.course.title }}</td>
+                <td>{{ booking.lab.name }}</td>
+                <td>
+                  <span class="badge bg-success">Active Lock</span>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted">
+                  <em>No upcoming lab sessions scheduled yet. Use the form above to lock a lab slot.</em>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

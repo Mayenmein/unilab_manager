@@ -1,35 +1,86 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Register - LabPulse Management System</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 0.3rem; color: #555; }
-        .form-group input, .form-group select { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .btn { width: 100%; background-color: #28a745; color: white; border: none; padding: 0.75rem; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-top: 1rem; }
-        .error { color: red; font-size: 0.85rem; }
-    </style>
-</head>
-<body>
-<div class="card">
-    <h2>Create Account</h2>
-    <form method="post">
-        {% csrf_token %}
-        {% for field in form %}
-            <div class="form-group">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% if field.errors %}
-                    <div class="error">{{ field.errors.0 }}</div>
-                {% endif %}
-            </div>
-        {% endfor %}
-        <button type="submit" class="btn">Register</button>
-    </form>
-    <p style="margin-top: 1rem; text-align: center;">Already have an account? <a href="{% url 'accounts:login' %}">Login here</a></p>
+<!-- templates/accounts/register.html -->
+{% extends 'base.html' %}
+
+{% block title %}Register - LabPulse Management System{% endblock %}
+
+{% block extra_head %}
+<style>
+    .register-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        padding: 2rem 0;
+    }
+    .card-register {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 450px;
+    }
+    .card-register h2 {
+        margin-top: 0;
+        color: #333;
+    }
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.3rem;
+        color: #555;
+    }
+    .form-group input, .form-group select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+    .btn-register {
+        width: 100%;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 0.75rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        margin-top: 1rem;
+    }
+    .btn-register:hover {
+        background-color: #218838;
+    }
+    .error {
+        color: red;
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="card-register">
+        <h2>Create Account</h2>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="error">{{ field.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn-register">Register</button>
+        </form>
+        <p style="margin-top: 1rem; text-align: center;">
+            Already have an account? <a href="{% url 'accounts:login' %}">Login here</a>
+        </p>
+    </div>
 </div>
-</body>
-</html>
+{% endblock %}
