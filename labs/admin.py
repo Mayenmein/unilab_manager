@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Lab, Workstation
-from .models import TimeSlot, ClassBooking, WorkstationReservation
+from .models import TimeSlot, ClassBooking, WorkstationReservation, MaintenanceTicket
 
 
 @admin.action(description='Activate selected labs and make workstations available')
@@ -55,3 +55,11 @@ class WorkstationReservationAdmin(admin.ModelAdmin):
     list_display = ['workstation', 'student', 'date', 'time_slot', 'created_at']
     list_filter = ['date', 'workstation__lab']
     search_fields = ['student__email', 'student__username', 'workstation__lab__name']
+
+
+@admin.register(MaintenanceTicket)
+class MaintenanceTicketAdmin(admin.ModelAdmin):
+    list_display = ['title', 'workstation', 'priority', 'status', 'reported_by', 'assigned_to', 'created_at']
+    list_filter = ['status', 'priority', 'workstation__lab']
+    search_fields = ['title', 'description', 'reported_by__email', 'workstation__lab__name']
+    raw_id_fields = ['workstation', 'reported_by', 'assigned_to']

@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
-from labs.models import Lab, Workstation, TimeSlot, ClassBooking, WorkstationReservation
+from labs.models import Lab, TimeSlot, ClassBooking, WorkstationReservation, MaintenanceTicket
 from academics.models import Course, CourseEnrollment
 
 User = get_user_model()
@@ -213,3 +213,40 @@ class ReservationFunctionalityTests(TestCase):
         subsequent_booking.save()
 
         self.assertEqual(ClassBooking.objects.count(), 2)
+
+
+class MaintenanceTicketTests(TestCase):
+
+    def setUp(self):
+        self.student = User.objects.create_user(username="student1", email="student1@univ.edu", password="pass", role="STUDENT")
+        self.staff_member = User.objects.create_user(username="staff1", email="staff1@univ.edu", password="pass", role="STAFF", is_staff=True)
+        self.lab = Lab.objects.create(name="Lab B", capacity=5, is_active=True)
+        self.workstation = self.lab.workstations.first()
+
+    def test_ticket_creation_locks_workstation(self):
+        """Opening a ticket automatically sets seat to MAINTENANCE."""
+        MaintenanceTicket.objects.create(
+            workstation=self.workstation,
+            reported_by=self.student,
+            title="Broken Keyboard",
+            description="Keys stuck",
+            status=MaintenanceTicket.Status.OPEN
+        )
+        self.workstation.refresh_from_db()
+        self.assertEqual(self.workstation.status, 'MAINTENANCE')
+
+    def test_resolving_ticket_restores_workstation(self):
+        """Resolving a ticket restores seat status to AVAILABLE."""
+        ticket = MaintenanceTicket.objects.create(
+            workstation=self.workstation,
+            reported_by=self.student,
+            title="Screen Flickering",
+            description="Display issue",
+            status=MaintenanceTicket.Status.OPEN
+        )
+        ticket.status = MaintenanceTicket.Status.RESOLVED
+        ticket.assigned_to = self.staff_member
+        ticket.save()
+
+        self.workstation.refresh_from_db()
+        self.assertEqual(self.workstation.status, 'AVAILABLE')

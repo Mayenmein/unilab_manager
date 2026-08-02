@@ -217,3 +217,84 @@ class WorkstationReservation(models.Model):
 
     def __str__(self):
         return f"{self.student.get_full_name() or self.student.username} - Seat #{self.workstation.seat_number} ({self.date})"
+
+class MaintenanceTicket(models.Model):
+    class Status(models.TextChoices):
+        OPEN = 'OPEN', 'Open'
+        IN_PROGRESS = 'IN_PROGRESS', 'In Progress'
+        RESOLVED = 'RESOLVED', 'Resolved'
+        CLOSED = 'CLOSED', 'Closed'
+
+    class Priority(models.TextChoices):
+        LOW = 'LOW', 'Low'
+        MEDIUM = 'MEDIUM', 'Medium'
+        HIGH = 'HIGH', 'High'
+        CRITICAL = 'CRITICAL', 'Critical'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    workstation = models.ForeignKey(
+        'Workstation',
+        on_delete=models.CASCADE,
+        related_name='maintenance_tickets'
+    )
+    reported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reported_tickets'
+    )
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_tickets',
+        help_text="Staff or Admin handling the repair"
+    )
+    title = models.CharField(max_length=150, help_text="e.g. Broken Monitor, Mouse Unresponsive")
+    description = models.TextField()
+    priority = models.CharField(
+        max_length=15,
+        choices=Priority.choices,
+        default=Priority.MEDIUM
+    )
+    status = models.CharField(
+        max_length=15,
+        choices=Status.choices,
+        default=Status.OPEN
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def clean(self):
+        super().clean()
+        if self.assigned_to_id and not (self.assigned_to.is_staff or getattr(self.assigned_to, 'role', '') in ['STAFF', 'ADMIN']):
+            raise ValidationError({
+                'assigned_to': 'Tickets can only be assigned to users with STAFF or ADMIN roles.'
+            })
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        # Workstation Status Syncing
+        active_statuses = [self.Status.OPEN, self.Status.IN_PROGRESS]
+        
+        if self.status in active_statuses:
+            if self.workstation.status != self.workstation.Status.MAINTENANCE:
+                self.workstation.status = self.workstation.Status.MAINTENANCE
+                self.workstation.save(update_fields=['status'])
+        else:
+            has_other_active = MaintenanceTicket.objects.filter(
+                workstation=self.workstation,
+                status__in=active_statuses
+            ).exclude(pk=self.pk).exists()
+
+            if not has_other_active and self.workstation.lab.is_active:
+                if self.workstation.status != self.workstation.Status.AVAILABLE:
+                    self.workstation.status = self.workstation.Status.AVAILABLE
+                    self.workstation.save(update_fields=['status'])
+
+    def __str__(self):
+        return f"[{self.get_priority_display()}] {self.title} - Seat #{self.workstation.seat_number}"
