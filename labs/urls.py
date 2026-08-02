@@ -5,6 +5,8 @@ app_name = 'labs'
 
 urlpatterns = [
     path('', views.root_redirect_view, name='root_redirect'),
+
+    path('class-booking/<uuid:booking_id>/cancel/', views.cancel_class_booking, name='cancel_class_booking'),
     
     # Student Routes
     path('student/', views.student_dashboard, name='student_dashboard'),

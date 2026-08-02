@@ -14,7 +14,7 @@
     {% for message in messages %}
       <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
         {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
     {% endfor %}
   {% endif %}
@@ -100,7 +100,7 @@
               <th>Course Code</th>
               <th>Course Name</th>
               <th>Lab Room</th>
-              <th>Action</th>
+              <th>Status & Action</th>
             </tr>
           </thead>
           <tbody>
@@ -116,9 +116,44 @@
                 <td>{{ booking.course.title }}</td>
                 <td>{{ booking.lab.name }}</td>
                 <td>
-                  <span class="badge bg-success">Active Lock</span>
+                  <span class="badge bg-success me-2">Active Lock</span>
+                  <!-- Trigger Confirmation Modal -->
+                  <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal{{ booking.id }}">
+                    Cancel Lock
+                  </button>
                 </td>
               </tr>
+
+              <!-- 🗑️ CANCELLATION CONFIRMATION MODAL -->
+              <div class="modal fade" id="cancelModal{{ booking.id }}" tabindex="-1" aria-labelledby="cancelModalLabel{{ booking.id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                  <div class="modal-content">
+                    <form method="POST" action="{% url 'labs:cancel_class_booking' booking.id %}">
+                      {% csrf_token %}
+                      <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="cancelModalLabel{{ booking.id }}">Confirm Booking Cancellation</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body text-start">
+                        <p>Are you sure you want to cancel the lab reservation for <strong>{{ booking.course.course_code }}</strong>?</p>
+                        <ul class="mb-0 text-muted small">
+                          <li><strong>Lab:</strong> {{ booking.lab.name }}</li>
+                          <li><strong>Date:</strong> {{ booking.date }}</li>
+                          <li><strong>Time Slot:</strong> {{ booking.time_slot.label }}</li>
+                        </ul>
+                        <div class="alert alert-warning mt-3 mb-0 small" role="alert">
+                          ⚠️ This action will release the room lock and clear any student seat reservations for this session.
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Booking</button>
+                        <button type="submit" class="btn btn-danger">Yes, Cancel Lock</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
             {% empty %}
               <tr>
                 <td colspan="6" class="text-center py-4 text-muted">

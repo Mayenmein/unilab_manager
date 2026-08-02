@@ -175,8 +175,14 @@ class WorkstationReservation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        # Enforce unique seat reservation per slot
+        # Enforce unique seat reservation per slot AND unique student reservation per slot
         unique_together = ('workstation', 'date', 'time_slot')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['student', 'date', 'time_slot'],
+                name='unique_student_reservation_per_slot'
+            )
+        ]
         ordering = ['date', 'time_slot__start_time']
 
     def clean(self):
@@ -190,7 +196,23 @@ class WorkstationReservation(models.Model):
         if self.workstation_id and not self.workstation.is_available:
             raise ValidationError({'workstation': f"Workstation Seat #{self.workstation.seat_number} is currently unavailable or the lab is closed."})
 
-        # 3. CLASS LOCK & ENROLLMENT CONSTRAINT CHECK
+        # 3. ONE SEAT PER STUDENT PER TIME SLOT CHECK
+        if self.student_id and self.date and self.time_slot_id:
+            existing_booking = WorkstationReservation.objects.filter(
+                student=self.student,
+                date=self.date,
+                time_slot=self.time_slot
+            )
+            # Exclude current instance if updating an existing object
+            if self.pk:
+                existing_booking = existing_booking.exclude(pk=self.pk)
+
+            if existing_booking.exists():
+                raise ValidationError({
+                    'workstation': f"You already have a seat reserved for this time slot on {self.date}."
+                })
+
+        # 4. CLASS LOCK & ENROLLMENT CONSTRAINT CHECK
         if self.workstation_id and self.date and self.time_slot_id:
             lab = self.workstation.lab
             active_class = ClassBooking.objects.filter(
