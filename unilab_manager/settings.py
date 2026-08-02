@@ -120,5 +120,5 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-LOGIN_REDIRECT_URL = 'accounts:dashboard_redirect'
+LOGIN_REDIRECT_URL = 'labs:root_redirect'
 LOGIN_URL = 'accounts:login'
